@@ -1,0 +1,16 @@
+.searchform {
+  max-width: 1000px;
+  display: inline-block;
+  width: 100%;
+  margin-top: 10px;
+}
+
+.searchtypebutton {
+  font-size: 160%;
+  padding: 3px 10px;
+  width: 3.5rem;
+  display: inline-block;
+  align-self: center;
+  position: absolute;
+  margin: 18px 0 0 20px;
+}

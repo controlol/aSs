@@ -1,0 +1,38 @@
+{
+  "name": "client",
+  "homepage": ".",
+  "version": "0.1.0",
+  "private": true,
+  "dependencies": {
+    "axios": "0.19.2",
+    "bluebird": "^3.7.2",
+    "concurrently": "^5.2.0",
+    "http-proxy-middleware": "^1.0.3",
+    "js-file-download": "^0.4.12",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "react-scripts": "^3.4.1",
+    "spotify-web-api-js": "1.2.0",
+    "universal-cookie": "^4.0.3"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "client": "react-scripts start",
+    "build": "react-scripts build",
+    "test": "react-scripts test --env=jsdom",
+    "eject": "react-scripts eject",
+    "start": "concurrently \"npm run client\" \"cd server && nodemon ./app.js \""
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  }
+}

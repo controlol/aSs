@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css?family=Noto+Sans+JP&display=swap');
+
+header {
+  display: grid;
+  grid-template-columns: 10% 40% 40% 10%;
+  justify-content: space-around;
+  background-color: #334;
+  justify-items: center;
+}
+
+header div {
+  width: 100%;
+  font-size: 200%;
+  font-family: 'Noto Sans JP', sans-serif;
+  transition-duration: .2s;
+  text-align: center;
+  padding-top: 1vh;
+}
+
+.user-settings, .logo {
+  display: inline-block
+}
+
+.user-settings span, .logo span {
+  display: block;
+  font-size: 1rem;
+  line-height: 1rem;
+  margin-bottom: 5px;
+}
+
+.user-settings img, .logo img {
+  border-radius: 50%;
+  height: 5vh;
+}
+
+#page:hover {
+  background-color: #345;
+  cursor: pointer;
+}
+
+.selected {
+  border-bottom: 3px solid #008CBA;
+}
+
+.profilebutton {
+  height: 5vh;
+  /*padding: .5rem;*/
+}
+
+.profilebutton:hover {
+  cursor: pointer;
+}
+
+.container {
+  max-width: 1500px;
+  margin: auto;
+}

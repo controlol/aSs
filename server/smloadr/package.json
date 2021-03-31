@@ -1,0 +1,34 @@
+{
+    "name": "smloadr",
+    "version": "1.23.0",
+    "description": "A streaming music downloader written in NodeJS.",
+    "author": "SMLoadrDev",
+    "license": "CC-BY-NC-4.0",
+    "private": false,
+    "main": "SMLoadr.js",
+    "bin": "SMLoadr.js",
+    "repository": {
+        "type": "git",
+        "url": "https://git.fuwafuwa.moe/SMLoadrDev/SMLoadr.git"
+    },
+    "engines": {
+        "node": ">=9.0.0"
+    },
+    "dependencies": {
+        "archiver": "^4.0.1",
+        "axios": "^0.20.0",
+        "axios-cookiejar-support": "^1.0.0",
+        "bcrypt": "^4.0.1",
+        "bluebird": "^3.7.2",
+        "cache-manager": "^3.3.0",
+        "jsonfile": "^6.0.1",
+        "openurl": "^1.1.1",
+        "request": "^2.88.2",
+        "request-plus": "^2.0.0",
+        "sanitize-filename": "^1.6.3",
+        "tough-cookie": "^4.0.0"
+    },
+    "devDependencies": {
+        "pkg": "4.3.1"
+    }
+}

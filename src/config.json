@@ -1,0 +1,20 @@
+{
+  "mongoHost": "mongodb",
+  "mongoPort": "27017",
+  "mongoUser": "",
+  "mongoPass": "",
+  "dbName": "musicapp",
+  "downloadLocation": "/music/",
+  "saveAlbumArt": false,
+  "saveLyrics": false,
+  "arl": "268047e7c5010e2e1789ada3f44696ff09b7bbe22c175595efe6c7f6c8359c89931a4f2b1e59c938ce098a7120f018469dc8cddeefe0f0e641086fdeef72ab7296432821e43b070cba09081a89f37b00ed30a26cc4442c492f81b099d4a564a6",
+  "concurrentDownloads": 5,
+  "quality": "MP3_320",
+  "optimizedFS": false,
+  "allowUploads": false,
+  "allowRegister": false,
+  "enableDebug": false,
+  "plexHostname": "binhex-plex",
+  "plexPort": 32400,
+  "plexHTTPS": false
+}
