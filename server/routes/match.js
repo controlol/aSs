@@ -1,5 +1,5 @@
 const router = require('express').Router();
-var sanitize = require('sanitize-filename');
+// var sanitize = require('sanitize-filename');
 const Promise = require('bluebird');
 
 require('../utils/prototypes');
@@ -10,25 +10,25 @@ const CONFIG = require('../../src/config.json'),
 const { matchByISRC, matchByQuery, searchTracks, updateMatch, storePlaylist } = require('../functions/match');
 
 // The used mongoDB models
-const SongMatch = require('../models/songMatch.model');
-const Playlist = require('../models/playlist.model');
-const { mongoError, XHRerror } = require('../utils/error');
+const SongMatch = require('../models/songMatch.model')
+const Playlist = require('../models/playlist.model')
+const { mongoError, XHRerror } = require('../utils/error')
 
 // This route is used for automatic matches, no user input is required from the website
 router.route('/advancedsearch').get((req, res) => {
   const query = req.query.query,
         spotifyID = req.query.spotifyID,
         isrc = req.query.isrc,
-        name = req.universalCookies.get('identity') ? req.universalCookies.get('identity').name : req.query.name ? req.query.name : null; // eventually this should only be available through cookies
+        name = req.universalCookies.get('identity') ? req.universalCookies.get('identity').name : req.query.name ? req.query.name : null // eventually this should only be available through cookies
 
-  if (!name || !query || !spotifyID || !isrc) return res.json({error: "missing paramater"});
+  if (!name || !query || !spotifyID || !isrc) return res.json({error: "missing paramater"})
 
-  let byISRC = true;
+  let byISRC = true
 
-  SongMatch.findOne({spotifyID})
+  return SongMatch.findOne({spotifyID})
   .then( async result => {
-    if (!result) throw new mongoError("no result", "SongMatch", null, spotifyID);
-    if (result.manual || result.byISRC) return res.json({result: "Update not allowed (manual match or with isrc)"});
+    if (!result) throw new mongoError("no result", "SongMatch", null, spotifyID)
+    if (result.manual || result.byISRC) return res.json({result: "Update not allowed (manual match or with isrc)"})
     
     try {
       let match = await matchByISRC(isrc);
@@ -37,16 +37,15 @@ router.route('/advancedsearch').get((req, res) => {
         byISRC = false
       }
 
-      const msg = await updateMatch(spotifyID, match, false, byISRC);
+      const msg = await updateMatch(spotifyID, match, byISRC);
 
-      return res.json({result: msg+byISRC ? " by ISRC" : "", deezerID, byISRC})
+      return res.json({result: msg + byISRC ? " by ISRC" : "", match, byISRC})
     } catch (err) {
       console.error({err})
       return res.json({error: "unknown error"})
     }
   })
   .catch( async err => {
-    console.log("not here right")
     if (err instanceof mongoError) {
       try {
         if (err.message === "no result") {
@@ -56,11 +55,9 @@ router.route('/advancedsearch').get((req, res) => {
             byISRC = false
           }
   
-          const msg = await updateMatch(spotifyID, match, false, byISRC);
+          const msg = await updateMatch(spotifyID, match, byISRC);
 
-          console.log("HALLO KANKER")
-  
-          return res.json({result: msg+byISRC ? " by ISRC" : "", deezerID, byISRC})
+          return res.json({result: msg + byISRC ? " by ISRC" : "", match, byISRC})
         }
 
         console.error(err.errors)
@@ -69,7 +66,7 @@ router.route('/advancedsearch').get((req, res) => {
         if (err.message === "save") return res.json({error: `could not save new document ${err.collection}`});
       } catch (err) {
         console.error({err})
-        return res.json({ error: "unknown error" })
+        return res.json({ error: err.message || err })
       }
     }
 
@@ -89,8 +86,8 @@ router.route('/update').post((req, res) => {
         deezerID = req.body.deezerID;
 
   if (!spotifyID || !deezerID) return res.json({error: "Missing spotifyID or deezerID"});
-  
-  updateMatch(spotifyID, deezerID, false, true)
+
+  return updateMatch(spotifyID, deezerID, false, true)
   .then(result => { return res.json({result}) })
   .catch(err => {
     if (err instanceof mongoError) {
@@ -146,7 +143,6 @@ router.route('/getmatch').get((req, res) => {
     if (err instanceof mongoError) {
       if (err.message === "no result") return res.json({error: `could not find "${err.key}" in ${err.collection}`})
     }
-    console.log(err)
     return res.json({error: "could not get matches"})
   })
 });
@@ -182,7 +178,7 @@ router.route('/storeplaylist').post((req, res) => {
 router.route('/search').get((req, res) => {
   let query = req.query.query;
 
-  searchTracks(query)
+  return searchTracks(query)
   .then(result => {
     let tracks = new Array();
 

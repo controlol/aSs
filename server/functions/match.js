@@ -1,40 +1,36 @@
+require('../utils/prototypes')
+
 const querystring = require('querystring'),
       axios = require('axios'),
       Promise = require('bluebird'),
-      path = require('path');
-
-require('../utils/prototypes')
-
-const { mongoError, XHRerror } = require('../utils/error'),
+      path = require('path'),
+      { mongoError, XHRerror } = require('../utils/error'),
       { generateDataString } = require('../utils/generators'),
-      { renamePath } = require('../utils/fs');
-
-const { getSpotifyTrackInfo, getSpotifyToken } = require('./spotify');
-
-const SongMatch = require('../models/songMatch.model'),
-      Playlist = require('../models/playlist.model');
-
-const CONFIG = require('../../src/config.json'),
-      rootFolder = (CONFIG.downloadLocation.charAt(CONFIG.downloadLocation.length-1) !== "/") ? CONFIG.downloadLocation += '/' : CONFIG.downloadLocation;
+      { renamePath } = require('../utils/fs'),
+      { getSpotifyTrackInfo, getSpotifyToken } = require('./spotify'),
+      SongMatch = require('../models/songMatch.model'),
+      Playlist = require('../models/playlist.model'),
+      CONFIG = require('../../src/config.json'),
+      rootFolder = (CONFIG.downloadLocation.charAt(CONFIG.downloadLocation.length-1) !== "/") ? CONFIG.downloadLocation += '/' : CONFIG.downloadLocation
 
 // variables for deezerAPI rate limit
-let deezerAPIrateCounter = 0;
-const deezerAPIintervalMs = 5 * 1000; 
-const deezerAPImaxRequests = 50;
+let deezerAPIrateCounter = 0
+const deezerAPIintervalMs = 5 * 1000
+const deezerAPImaxRequests = 45
 
-const delay = t => new Promise(resolve => setTimeout(resolve, t));
+const delay = t => new Promise(resolve => setTimeout(resolve, t))
 
 exports.matchByISRC = isrc => {
   // API ratelimiting stuffz
-  if (deezerAPIrateCounter >= deezerAPImaxRequests) return delay(100).then(() => { return this.matchByISRC(isrc) });
-  deezerAPIrateCounter++;
+  if (deezerAPIrateCounter >= deezerAPImaxRequests) return delay(100).then(() => this.matchByISRC(isrc))
+  deezerAPIrateCounter++
 
   return new Promise(resolve => {
-    axios.get('https://api.deezer.com/track/isrc:'+isrc)
+    return axios.get('https://api.deezer.com/track/isrc:'+isrc)
     .then(response => {
-      if (response.data.error) throw new XHRerror("could not find isrc", 504); //A match couldn't be found by ISRC
+      if (response.data.error) throw new XHRerror("could not find isrc", 504) //A match couldn't be found by ISRC
 
-      return resolve(response.data.id);
+      return resolve(response.data.id)
     })
     .catch(err => {
       if (err instanceof XHRerror) return resolve(err)
@@ -47,17 +43,17 @@ exports.matchByISRC = isrc => {
 
 exports.matchByQuery = query => {
   return new Promise((resolve, reject) => {
-    const trackName = query.substring(query.indexOf("track:")+7, query.indexOf("artist:")-2); // get the trackname from the query given in this function
-    if (trackName.trim() === "") return reject(new Error(`not advanced query: ${query}`));
+    const trackName = query.substring(query.indexOf("track:")+7, query.indexOf("artist:")-2) // get the trackname from the query given in this function
+    if (trackName.trim() === "") return reject(new Error(`not advanced query: ${query}`))
 
     // API ratelimiting stuffz
-    if (deezerAPIrateCounter >= deezerAPImaxRequests) return delay(100).then(() => { return this.matchByQuery(query) });
-    deezerAPIrateCounter++;
+    if (deezerAPIrateCounter >= deezerAPImaxRequests) return delay(100).then(() => this.matchByQuery(query))
+    deezerAPIrateCounter++
 
     return this.searchTracks(query)
     .then(tracks => {
-      console.log(`There were ${tracks.length} results for ${trackName}`);
-      if (tracks.length === 0) res.json({error: "Could not find match by advanced search"}); // error: no results
+      console.log(`There were ${tracks.length} results for ${trackName}`)
+      if (tracks.length === 0) res.json({error: "Could not find match by advanced search"}) // error: no results
 
       for (let i = 0; i < tracks.length; i++) { // loop through the results to see if the trackname is the same
         let track = tracks[i]
@@ -69,8 +65,8 @@ exports.matchByQuery = query => {
       }
     })
     .catch(err => { // deezer API error
-      if (err instanceof XHRerror) return reject(err);
-      if (err.isAxiosError) return reject(new XHRerror("no response from deezer", err.response.status, err.config));
+      if (err instanceof XHRerror) return reject(err)
+      if (err.isAxiosError) return reject(new XHRerror("no response from deezer", err.response.status, err.config))
       return reject(err)
     })
   })
@@ -83,22 +79,24 @@ exports.matchByQuery = query => {
  */
 exports.searchTracks = (query, retry = 0) => { // a retry should be added
   return new Promise((resolve, reject) => {
-    if (retry > 3) return reject(new Error("too many retries"));
+    if (retry > 3) return reject(new Error("too many retries"))
 
     // API ratelimiting stuffz
-    if (deezerAPIrateCounter >= deezerAPImaxRequests) return delay(100).then(() => { return this.searchTracks(query, retry) });
-    deezerAPIrateCounter++;
+    if (deezerAPIrateCounter >= deezerAPImaxRequests) return delay(100).then(() => { return this.searchTracks(query, retry) })
+    deezerAPIrateCounter++
 
-    axios.get('https://api.deezer.com/search?'+querystring.stringify({q: query})) // Using the deezer search API to search tracks
+    return axios.get('https://api.deezer.com/search?'+querystring.stringify({q: query})) // Using the deezer search API to search tracks
     .then(response => {
-      if (response.data.data.length === 0) throw new XHRerror("no result", 504)
-
-      let tracks = response.data.data;
-      return resolve(tracks)
+      if (response.data?.data?.length > 0) {
+        let tracks = response.data.data
+        return resolve(tracks)
+      } else {
+        throw new XHRerror("no result", 504)
+      }
     })
     .catch(err => { // deezer API error
-      if (err instanceof XHRerror) return reject(err);
-      if (err.isAxiosError) return reject(new XHRerror("no response from deezer", err.response.status, err.config));
+      if (err instanceof XHRerror) return reject(err)
+      if (err.isAxiosError) return reject(new XHRerror("no response from deezer", err.response.status, err.config))
       return reject(err)
     })
   })
@@ -114,21 +112,21 @@ exports.searchTracks = (query, retry = 0) => { // a retry should be added
  */
 exports.updateMatch = (spotifyID, deezerID, byISRC = false, forced = false) => {
   return new Promise((resolve, reject) => {
-    SongMatch.findOne({spotifyID})
+    return SongMatch.findOne({spotifyID})
     .then(result => {
-      if (!result) throw new mongoError("no result", "SongMatch", null, spotifyID);
+      if (!result) throw new mongoError("no result", "SongMatch", null, spotifyID)
 
-      if (result.deezerID === deezerID) return resolve("deezerID same as current"); //update document if it is not the same
-      if (forced || !result.manual) return resolve("update not allowed"); //only update if forced is true or manual is not true
+      if (result.deezerID === deezerID) return resolve("deezerID same as current") //update document if it is not the same
+      if (forced || !result.manual) return resolve("update not allowed") //only update if forced is true or manual is not true
 
-      result.deezerID = deezerID;
-      result.manual = forced;
-      result.byISRC = byISRC;
+      result.deezerID = deezerID
+      result.manual = forced
+      result.byISRC = byISRC
 
-      result.save()
+      return result.save()
       .then(() => {
         result.location.forEach(path => { fs.unlink(path) }) // delete any existing tracks because it is a different track now 
-        return resolve("updated match");
+        return resolve("updated match")
       })
       .catch(err => { throw new mongoError("update", "SongMatch", err.errors, "deezerID, manual, byISRC") })
     })
@@ -136,15 +134,13 @@ exports.updateMatch = (spotifyID, deezerID, byISRC = false, forced = false) => {
       if (err instanceof mongoError) {
         if (err.message === "no result") {
           const newMatch = new SongMatch({spotifyID, deezerID, byISRC, manual: forced})
-          newMatch.save()
+          return newMatch.save()
           .then(() => { return resolve("saved new match") })
           .catch(err => { return reject(new mongoError("save", "SongMatch", err.errors)) })
         }
-
+      } else {
         return reject(err)
       }
-
-      return new mongoError("no result", "SongMatch", err.errors, spotifyID);
     })
   })
 }
@@ -159,29 +155,27 @@ exports.updateMatch = (spotifyID, deezerID, byISRC = false, forced = false) => {
 exports.updatePlaylistLocation = (tracks, oldTitle, newTitle) => {
   return Promise.map(tracks, spotifyID => {
     return new Promise((resolve, reject) => {
-      SongMatch.findOne({spotifyID})
+      return SongMatch.findOne({spotifyID})
       .then(result => {
         if (!result) return resolve() // there is no match for this song, thus there is no location stored
 
-        let locationIndex = -1; // create index
+        let locationIndex = -1 // create index
 
-        result.location.filter((location, i) => {
-          if (location.includes("/"+oldTitle+"/"))locationIndex = i;
-        }); // get the index of the location where the playlist title occurs
+        result.location.filter((location, i) => { if (location.includes("/"+oldTitle+"/"))locationIndex = i }) // get the index of the location where the playlist title occurs
 
-        if (locationIndex === -1) return resolve(); // the location does not need to be updated
+        if (locationIndex === -1) return resolve() // the location does not need to be updated
 
         const file = path.basename(result.location[locationIndex]), // get the filename using locationIndex
-              newLocation = path.join(rootFolder, newTitle, file); // create the new path
+              newLocation = path.join(rootFolder, newTitle, file) // create the new path
 
-        result.location[locationIndex] = newLocation; // replace/update the location
+        result.location[locationIndex] = newLocation // replace/update the location
 
-        result.save() // store location to mongoDB
-        .then(() => { return resolve() })
+        return result.save() // store location to mongoDB
+        .then(() => resolve())
         .catch(err => { throw err }) //new mongoError("update", "SongMatch", err.errors, "location") })
       })
       .catch(err => {
-        if (err instanceof mongoError) return reject(err);
+        if (err instanceof mongoError) return reject(err)
         if (err.name == 'ValidationError') return reject(new mongoError("no result", "SongMatch", err, spotifyID))
         return reject(err)
       })
@@ -190,48 +184,50 @@ exports.updatePlaylistLocation = (tracks, oldTitle, newTitle) => {
 }
 
 exports.storePlaylist = (playlistID, playlistTitle, trackID, name) => {
-  playlistTitle = playlistTitle.sanitizeFile();
+  playlistTitle = playlistTitle.sanitizeFile()
   return new Promise((resolve, reject) => {
-    Playlist.findOne({playlistID})
+    return Playlist.findOne({playlistID})
     .then(result => {
       if (!result) throw new mongoError("no result", "Playlist", null, playlistID)
-      let deletedTracks = new Array();
+      let deletedTracks = new Array()
 
       //add deleted tracks to deleted tracks array
       let tasks = result.tracks.map(track => {
         return new Promise((resolve) => {
-          if (!trackID.includes(track)) deletedTracks.push(track);
-          return resolve();
+          if (!trackID.includes(track)) deletedTracks.push(track)
+          return resolve()
         })
       })
 
-      Promise.all(tasks)
-      .then(() => {
-        result.deletedTracks = result.deletedTracks.length > 0 ? [...result.deletedTracks, ...deletedTracks] : deletedTracks;
-        result.tracks = trackID;
-        result.owner = name;
+      return Promise.all(tasks)
+      .then( async () => {
+        try {
+          result.deletedTracks = result.deletedTracks.length > 0 ? [...result.deletedTracks, ...deletedTracks] : deletedTracks
+          result.tracks = trackID
+          result.owner = name
 
-        result.deletedTracks.forEach((deletedTrack, index) => { if (result.tracks.includes(deletedTrack)) result.deletedTracks.splice(index, 1) }) // remove tracks that were readded to the playlist from the array
+          result.deletedTracks.forEach((deletedTrack, index) => { if (result.tracks.includes(deletedTrack)) result.deletedTracks.splice(index, 1) }) // remove tracks that were readded to the playlist from the array
 
-        if (result.playlistTitle !== playlistTitle) {
-          console.log("non matching titles")
-          if (!CONFIG.optimizedFS) {
-            this.updatePlaylistLocation(result.tracks, result.playlistTitle, playlistTitle) // only move files if the fs is not optimized, someday there will be a equivalent option for plex playlistnames when plex integration gets implemented
-            .then(() => {
-              let oldFolder = path.join(rootFolder, result.playlistTitle),
-                  newFolder = path.join(rootFolder, playlistTitle).sanitizePath();
-            
-              renamePath(oldFolder, newFolder)
-              .catch(err => { console.error(err) })
-            })
-            .catch(err => { console.error(err) }) // the error should be thrown instead but it doesnt get catched??
+          if (result.playlistTitle !== playlistTitle) {
+            console.log("non matching titles")
+
+            if (!CONFIG.optimizedFS) {
+              await this.updatePlaylistLocation(result.tracks, result.playlistTitle, playlistTitle) // only move files if the fs is not optimized, someday there will be a equivalent option for plex playlistnames when plex integration gets implemented
+              const oldFolder = path.join(rootFolder, result.playlistTitle),
+                    newFolder = path.join(rootFolder, playlistTitle).sanitizePath()
+
+              await renamePath(oldFolder, newFolder)
+            }
+
+            result.playlistTitle = playlistTitle
           }
-          result.playlistTitle = playlistTitle
-        }
 
-        result.save()
-        .then(() => { return resolve() })
-        .catch(err => { throw new mongoError("update", "Playlist", err.errors, "deletedTracks, tracks, name, playlistTitle") })
+          return result.save()
+          .then(() => resolve())
+          .catch(err => { throw new mongoError("update", "Playlist", err.errors, "deletedTracks, tracks, name, playlistTitle") })
+        } catch (err) {
+          throw err
+        }
       })
       .catch(err => { throw err })
     })
@@ -240,7 +236,7 @@ exports.storePlaylist = (playlistID, playlistTitle, trackID, name) => {
         if (err.message === "no result") {
           let newPlaylist = new Playlist({ playlistID, playlistTitle, tracks: trackID, owner: name })
 
-          newPlaylist.save()
+          return newPlaylist.save()
           .then(() => { return resolve("new") })
           .catch(err => { return reject(new mongoError("save", "Playlist", err.errors)) })
         }
@@ -260,7 +256,7 @@ exports.storePlaylist = (playlistID, playlistTitle, trackID, name) => {
 exports.matchMultipleTracks = (tracks, spotifyToken) => {
   return Promise.map(tracks, spotifyID => {
     return new Promise(resolve => {
-      SongMatch.findOne({spotifyID})
+      return SongMatch.findOne({spotifyID})
       .then(result => {
         if (result) return resolve()
 
@@ -268,20 +264,20 @@ exports.matchMultipleTracks = (tracks, spotifyToken) => {
 
         return getSpotifyTrackInfo(spotifyID, spotifyToken)
         .then(async trackinfo => {
-          let byISRC = true;
+          let byISRC = true
 
           const query = generateDataString(trackinfo),
-                isrc = trackinfo.isrc;
-            
-          let match = await this.matchByISRC(isrc);
+                isrc = trackinfo.isrc
+
+          let match = await this.matchByISRC(isrc)
           if (match instanceof XHRerror) {
             match = await this.matchByQuery(query)
             byISRC = false
           }
 
-          await this.updateMatch(spotifyID, match, false, byISRC);
+          await this.updateMatch(spotifyID, match, false, byISRC)
 
-          resolve();
+          resolve()
         })
         .catch(err => { throw err })
       })
@@ -291,9 +287,10 @@ exports.matchMultipleTracks = (tracks, spotifyToken) => {
           if (err.status === 401) {
             return getSpotifyToken()
             .then(spotifyToken => {
-              return this.matchMultipleTracks(tracks, spotifyToken)
+              return this.matchMultipleTracks(tracks, spotifyToken) // no catch
               .then(result => { return resolve(result) })
             })
+            .catch(err => reject(err))
           }
           return resolve()
         }
@@ -301,29 +298,29 @@ exports.matchMultipleTracks = (tracks, spotifyToken) => {
         return resolve()
       })
     })
-  }, {concurrency: 1})
+  }, { concurrency: 1 })
 }
 
 exports.setBadMatch = deezerID => {
   console.warn("setting badmatch", deezerID)
   return new Promise((resolve, reject) => {
-      SongMatch.findOne({deezerID})
-      .then(result => {
-        if (!result) throw new mongoError("no result", "Songmatch", null, deezerID)
+    return SongMatch.findOne({deezerID})
+    .then(result => {
+      if (!result) throw new mongoError("no result", "Songmatch", null, deezerID)
 
-        result.deezerID = "badmatch";
-        result.manual = true;
+      result.deezerID = "badmatch"
+      result.manual = true
 
-        result.save()
-        .then(() => { return resolve() })
-        .catch(err => { throw new mongoError("update", "Songmatch", err.errors, "badmatch") })
-      })
-      .catch(err => { 
-        if (err instanceof mongoError) return reject(err)
-        return reject(new mongoError("no result", "SongMatch", err.errors, deezerID)) 
-      })
+      return result.save()
+      .then(() => resolve())
+      .catch(err => { throw new mongoError("update", "Songmatch", err.errors, "badmatch") })
+    })
+    .catch(err => { 
+      if (err instanceof mongoError) return reject(err)
+      return reject(new mongoError("no result", "SongMatch", err.errors, deezerID)) 
+    })
   })
 }
 
 // this variable is used to reset the "deezerAPIrateCounter" every "deezerAPIintervalMs" to prevent 429 http status errors, it is assigned to a variable so the interval could be stopped
-let resetDeezerAPICounter = setInterval(() => {deezerAPIrateCounter = 0}, deezerAPIintervalMs);
+let resetDeezerAPICounter = setInterval(() => {deezerAPIrateCounter = 0}, deezerAPIintervalMs)
