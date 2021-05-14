@@ -2,7 +2,40 @@ const express = require('express'), // Express web server framework
       cookieParser = require('cookie-parser'),
       mongoose = require('mongoose'),
       cookiesMiddleware = require('universal-cookie-express'),
-      bodyParser = require('body-parser')
+      bodyParser = require('body-parser'),
+      fs = require('fs')
+
+fs.access("../src/config.json", err => {
+  if (err) {
+    fs.writeFile(
+      "../src/config.json",
+`{
+  "mongoHost": "mongodb",
+  "mongoPort": "27017",
+  "mongoUser": "",
+  "mongoPass": "",
+  "dbName": "",
+  "downloadLocation": "/music/",
+  "saveAlbumArt": false,
+  "saveLyrics": false,
+  "arl": "",
+  "concurrentDownloads": 5,
+  "quality": "MP3_320",
+  "optimizedFS": false,
+  "allowUploads": false,
+  "allowRegister": false,
+  "enableDebug": false,
+  "plexHostname": "",
+  "plexPort": 32400,
+  "plexHTTPS": false,
+  "spotifyID": "",
+  "spotifySecret": "",
+  "domainName": ""
+}`, err => {
+    console.log(`${err ? "could not" : "created"} config file`)
+  })
+  }
+})
 
 // set parameters for database
 const CONFIG = require('../src/config.json'),
@@ -54,7 +87,6 @@ app
 
 app.listen(8888)
 console.log('Listening on 8888')
-
 
 // const SongMatch = require('./models/songMatch.model')
 // setTimeout(() => {
