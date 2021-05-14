@@ -40,7 +40,7 @@ router.route('/callback').get((req, res) => {
       if (!error && response.statusCode === 200) {
         const access_token = body.access_token,
               refresh_token = body.refresh_token,
-              name = req.cookies ? req.universalCookies.get('identity').name : null,
+              name = req.cookies ? req.universalCookies.get('identity').name : null
 
         const options = {
           url: 'https://api.spotify.com/v1/me',
@@ -92,7 +92,7 @@ router.route('/gettoken').get((req, res) => {
   } else {
     return getSpotifyToken("name", name)
     .then(spotifyName => res.json(spotifyName))
-    .catch(err => res.status(401).json({ token: null }))
+    .catch(() => res.status(401).json({ token: null }))
   }
 })
 
@@ -103,7 +103,7 @@ router.route('/is-logged-in').get((req, res) => {
 
   return isLoggedin(name)
   .then(spotifyName => res.json({name: spotifyName}))
-  .catch(err => res.status(401).json({name: null}))
+  .catch(() => res.status(401).json({name: null}))
 })
 
 router.route('/logout').get((req, res) => {
@@ -179,7 +179,7 @@ router.route('/track-duration').get((req, res) => {
     let spotifyToken = token.token
 
     return axios.get(`https://api.spotify.com/v1/tracks/${trackID}`, { // get trackID to update the playlist
-      headers: { Authorization: 'Bearer '+spotifyToken }
+      headers: { Authorization: 'Bearer ' + spotifyToken }
     })
     .then(response => {
       let duration = Math.round(response.data.duration_ms / 1000)

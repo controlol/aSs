@@ -1,139 +1,121 @@
-const express = require('express');
-const router = express.Router();
-const bcrypt = require('bcrypt');
-const { mongoError } = require('../utils/error');
+const express = require('express'),
+      router = express.Router(),
+      bcrypt = require('bcrypt'),
+      { mongoError } = require('../utils/error'),
+      CONFIG = require('../../src/config.json'),
+      allowRegister = CONFIG.allowRegister,
+      User = require('../models/user.model'),
+      Cookie = require('../models/cookie.model')
 
-const CONFIG = require('../../src/config.json');
-const allowRegister = CONFIG.allowRegister;
+const generateRandomString = length => {
+  let text = ''
+  let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
 
-const User = require('../models/user.model');
-const Cookie = require('../models/cookie.model');
-
-function generateRandomString(length) {
-  let text = '';
-  let possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-  for (let i = 0; i < length; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-};
+  for (let i = 0; i < length; i++) text += possible.charAt(Math.floor(Math.random() * possible.length))
+  return text
+}
 
 function createCookie(name) {
-  let expire = new Date();
-  let weekInMilliSeconds = 7 * 24 * 60 * 60;
-  console.log(weekInMilliSeconds)
+  let expire = new Date()
 
-  let cookie = generateRandomString(64);
-  expire.setDate(expire.getDate()+14);
+  let cookie = generateRandomString(64)
+  expire.setDate(expire.getDate() + 14)
 
-  const newCookie = new Cookie({name, cookie, expire});
-  
+  const newCookie = new Cookie({name, cookie, expire})
+
   return new Promise((resolve, reject) => {
-    newCookie.save()
-    .then(() => {
-      resolve({cookie, expire});
-    })
-    .catch(err => {
-      reject("Could not store cookie: ", err);
-    })
+    return newCookie.save()
+    .then(() => resolve({cookie, expire}))
+    .catch(err => reject("Could not store cookie: ", err))
   })
 }
 
 router.route('/login').post((req, res) => {
-  let name = req.body.name;
-  let password = req.body.password;
+  let name = req.body.name
+  let password = req.body.password
 
-  User.findOne({name: name})
+  return User.findOne({name: name})
   .then(user => {
-    let hashedPassword = user.password;
-    let name = user.name;
+    let hashedPassword = user.password
+    let name = user.name
 
-    bcrypt.compare(password, hashedPassword, function(err, result) { 
-      if (result) { 
-        createCookie(name)
-        .then(result => {
-          //return the cookie
-          res.json({status: "success", valid: 1, cookie: result.cookie, expire: result.expire});
-        }) 
+    bcrypt.compare(password, hashedPassword, function(err, result) {
+      if (result) {
+        return createCookie(name)
+        .then(result => res.json({status: "success", valid: 1, cookie: result.cookie, expire: result.expire}))
         .catch(err => {
           console.log(err)
-          res.json({status: "Could not store cookie", valid: 0})
+          return res.json({status: "Could not store cookie", valid: 0})
         })
-      } else { 
+      } else {
         console.error("bcrypt error", err)
-        res.json({status: 'Invalid password!', valid: 0});
-      } 
-    }) 
+        return res.json({status: 'Invalid password!', valid: 0})
+      }
+    })
   })
-  .catch(err => res.json({status: 'Unknown Username!', valid: 0}));
-});
+  .catch(err => res.json({status: 'Unknown Username!', valid: 0}))
+})
 
 router.route('/register').post((req, res, next) => {
-  if (!allowRegister) {
-    res.json({error: "registering has been disabled"})
-    next()
-  }
-  const name = req.body.name;
-  let password = req.body.password;
-  const salt = bcrypt.genSaltSync(10);
+  if (!allowRegister) return res.json({error: "registering has been disabled"})
 
-  password = bcrypt.hashSync(password, salt);
+  const name = req.body.name
+  let password = req.body.password
+  const salt = bcrypt.genSaltSync(10)
 
-  const newUser = new User({name, salt, password});
+  password = bcrypt.hashSync(password, salt)
 
-  newUser.save()
-    .then(() => res.json('User added!'))
-    .catch(err => res.status(400).json('Error: ' + err));
-});
+  const newUser = new User({name, salt, password})
+
+  return newUser.save()
+  .then(() => res.json('User added!'))
+  .catch(err => res.status(400).json('Error: ' + err))
+})
 
 router.route('/validatecookie').post((req, res) => {
-  let name = req.body.name;
-  let cookie = req.body.id;
-  let validate = req.body.validate;
+  let name = req.body.name
+  let cookie = req.body.id
+  let validate = req.body.validate
 
-  Cookie.findOne({name, cookie})
+  return Cookie.findOne({name, cookie})
   .then(result => {
-    if (new Date(result.expire) > new Date()) {
-      res.json({valid: 1, validate})
-    } else {
-      Cookie.deleteOne({_id: result._id})
-      .then(res.json({valid: 0, status: "Cookie expired and was deleted"}))
-      .catch(res.json({valid: 0, status: "Could not delete cookie"}))
-    }
+    if (new Date(result.expire) > new Date()) return res.json({valid: 1, validate})
+
+    return Cookie.deleteOne({_id: result._id})
+    .then(() => res.json({valid: 0, status: "Cookie expired and was deleted"}))
+    .catch(() => res.json({valid: 0, status: "Could not delete cookie"}))
   })
   .catch(err => {
     console.log(err)
-    res.json({valid: 0, status: "Could not find cookie"})
+    return res.json({valid: 0, status: "Could not find cookie"})
   })
-});
+})
 
 router.route('/deletecookie').post((req, res) => {
-  let cookie = req.body.id;
+  let cookie = req.body.id
 
-  Cookie.deleteOne({cookie})
-  .then(() => {res.json({valid: 1, status: "Cookie was deleted"})})
+  return Cookie.deleteOne({cookie})
+  .then(() => res.json({valid: 1, status: "Cookie was deleted"}))
   .catch(err => {
-    console.error(err);
-    res.json({valid: 0, status: "Could not delete cookie"});
+    console.error(err)
+    return res.json({valid: 0, status: "Could not delete cookie"})
   })
-});
+})
 
 router.route('/get-arl').get((req, res) => {
-  const name = req.universalCookies.get('identity') ? req.universalCookies.get('identity').name : req.query.name ? req.query.name : null; // eventually this should only be available through cookies
+  const name = req.universalCookies.get('identity') ? req.universalCookies.get('identity').name : req.query.name ? req.query.name : null // eventually this should only be available through cookies
 
-  if (!name) return res.json({error: "missing parameter"});
+  if (!name) return res.json({error: "missing parameter"})
 
-  User.findOne({name})
+  return User.findOne({name})
   .then(result => {
-    if (!result) throw new mongoError("no result", "User", name);
+    if (!result) throw new mongoError("no result", "User", name)
 
     return res.json({arl: result.arl ? result.arl : ''})
   })
   .catch(err => {
-    if (err instanceof mongoError) {
-      if (err.message === "no result") return res.json({error: `could not find "${err.key}" in ${err.collection}`})
-    }
+    if (err instanceof mongoError && err.message === "no result") return res.json({error: `could not find "${err.key}" in ${err.collection}`})
+
     console.error(err)
     return res.json({error: "unknown error"})
   })
@@ -141,18 +123,18 @@ router.route('/get-arl').get((req, res) => {
 
 router.route('/set-arl').post((req, res) => {
   const name = req.universalCookies.get('identity') ? req.universalCookies.get('identity').name : req.query.name ? req.query.name : null, // eventually this should only be available through cookies
-        arl = req.body.arl ? req.body.arl : null;
+        arl = req.body.arl ? req.body.arl : null
 
-  if (!name || !arl) return res.json({error: "missing parameter"});
+  if (!name || !arl) return res.json({error: "missing parameter"})
 
-  User.findOne({name})
+  return User.findOne({name})
   .then(result => {
-    if (!result) throw new mongoError("no result", "User", name);
+    if (!result) throw new mongoError("no result", "User", name)
 
-    result.arl = arl;
+    result.arl = arl
 
-    result.save()
-    .then(() => { return res.json({success: "updated arl for " + name}) })
+    return result.save()
+    .then(() => res.json({success: "updated arl for " + name}))
     .catch(err => { throw new mongoError("update", "User", "arl") })
   })
   .catch(err => {
@@ -165,4 +147,4 @@ router.route('/set-arl').post((req, res) => {
   })
 })
 
-module.exports = router;
+module.exports = router
