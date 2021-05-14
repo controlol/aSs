@@ -3,18 +3,12 @@ const router = require('express').Router(),
       request = require('request'), // "Request" library
       axios = require('axios'),
       { getSpotifyToken, getPlaylistTracks, isLoggedin, getUserPlaylists, getPlaylistMatches } = require('../functions/spotify'),
-      { storePlaylist } = require('../functions/match')
-
-
-const { generateRandomString } = require('../utils/generators')
-
-let client_id = '6d14132b2a8641ef9c01ffa20071deec' // Your client id for spotify API tied to your application
-let client_secret = '69f980b8b707468aa286feba65da6f03' // Your secret for spotify API tied to your application
-let redirect_uri = 'https://music.plexx.tk/api/spotify/callback' // Your redirect uri
-
-const SpotifyToken = require('../models/spotifyToken.model')
-
-const stateKey = 'spotify_auth_state'
+      { storePlaylist } = require('../functions/match'),
+      { spotifyID, spotifySecret, domainName } = require('../../src/config.json'),
+      redirect_uri = `https://${domainName}/api/spotify/callback`, // Your redirect uri
+      stateKey = 'spotify_auth_state',
+      { generateRandomString } = require('../utils/generators'),
+      SpotifyToken = require('../models/spotifyToken.model')
 
 // this code should be reworked and added to the spotify function file
 router.route('/callback').get((req, res) => {
@@ -33,11 +27,11 @@ router.route('/callback').get((req, res) => {
       url: 'https://accounts.spotify.com/api/token',
       form: {
         code: code,
-        redirect_uri: redirect_uri,
+        redirect_uri,
         grant_type: 'authorization_code'
       },
       headers: {
-        'Authorization': 'Basic ' + (Buffer.from(client_id + ':' + client_secret).toString('base64'))
+        'Authorization': 'Basic ' + (Buffer.from(spotifyID + ':' + spotifySecret).toString('base64'))
       },
       json: true
     }
@@ -83,9 +77,9 @@ router.route('/auth').get((req, res) => {
   res.redirect('https://accounts.spotify.com/authorize?' +
     stringify({
       response_type: 'code',
-      client_id: client_id,
+      client_id: spotifyID,
       scope: scope,
-      redirect_uri: redirect_uri,
+      redirect_uri,
       state: state
     }))
 })

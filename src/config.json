@@ -16,5 +16,8 @@
   "enableDebug": false,
   "plexHostname": "binhex-plex",
   "plexPort": 32400,
-  "plexHTTPS": false
+  "plexHTTPS": false,
+  "spotifyID": "",
+  "spotifySecret": "",
+  "domainName": ""
 }

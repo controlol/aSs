@@ -4,13 +4,11 @@ const SpotifyToken = require('../models/spotifyToken.model'),
       querystring = require('querystring'),
       axios = require('axios'),
       { XHRerror, mongoError } = require('../utils/error'),
-      client_id = '6d14132b2a8641ef9c01ffa20071deec', // Your client id for spotify API tied to your application
-      client_secret = '8be9281aaefd4b88ae91e0843004e497', // Your secret for spotify API tied to your application
-      redirect_uri = 'https://music.plexx.tk/api/spotify/callback', // Your redirect uri
-      stateKey = 'spotify_auth_state',
+      { spotifyID, spotifySecret, domainName } = require('../../src/config.json'),
       baseurl = 'http://localhost:8888',
       spotifyPlaylistLimit = 50,
       spotifyTrackLimit = 100
+
 /**
  * resolves in a spotifyToken and name if the token is valid
  * otherwise rejects null
@@ -40,7 +38,7 @@ exports.getSpotifyToken = (key, value) => {
             grant_type: "refresh_token",
             refresh_token: result.refreshToken
           }), {
-            headers: { Authorization: 'Basic ' + (Buffer.from(client_id + ':' + client_secret).toString('base64')), 'Content-Type': 'application/x-www-form-urlencoded' }
+            headers: { Authorization: 'Basic ' + (Buffer.from(spotifyID + ':' + spotifySecret).toString('base64')), 'Content-Type': 'application/x-www-form-urlencoded' }
           })
           .then(response => {
             console.log("received new token")
@@ -263,7 +261,7 @@ exports.getUserPlaylists = (spotifyToken, name = [], id = [], trackCount = [], o
 exports.storePlaylist = (trackID, playlistTitle, playlistID, identity) => {
   const axiosOptions = {
     method: 'POST',
-    url: baseurl+'/api/match/storeplaylist',
+    url: baseurl + '/api/match/storeplaylist',
     data: {
       trackID,
       playlistTitle,
